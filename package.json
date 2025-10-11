@@ -1,10 +1,4 @@
 {
-  "type": "module",
-  "name": "event_post",
-  "version": "1.0.0",
-  ...
-}
-{
   "name": "event_post",
   "version": "1.0.0",
   "description": "",
