@@ -11,14 +11,14 @@ const PORT = process.env.PORT || 10000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use(express.static(__dirname)); // index.html, style.css, script.jsなど
+// 静的ファイルを配信（index.html, style.css, script.jsなど）
+app.use(express.static(__dirname));
 app.use(bodyParser.json());
 
+// 定型文ファイルのパス
 const TEMPLATE_FILE = path.join(__dirname, "templates.json");
 
-// -----------------
-// 定型文取得・保存
-// -----------------
+// 定型文の取得
 app.get("/templates", (req, res) => {
   fs.readFile(TEMPLATE_FILE, "utf8", (err, data) => {
     if (err) return res.status(500).send({ error: "テンプレートを読み込めません。" });
@@ -26,6 +26,7 @@ app.get("/templates", (req, res) => {
   });
 });
 
+// 定型文の保存
 app.post("/save-template", (req, res) => {
   const newTemplates = req.body;
   fs.writeFile(TEMPLATE_FILE, JSON.stringify(newTemplates, null, 2), (err) => {
@@ -34,32 +35,28 @@ app.post("/save-template", (req, res) => {
   });
 });
 
-// -----------------
-// X (Twitter) 投稿用
-// -----------------
+// X API テスト用（OAuth 1.0a）
 app.post("/post-tweet", async (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.status(400).send({ error: "message が必要です。" });
+
+  const client = new Twitter({
+    consumer_key: process.env.TWITTER_CONSUMER_KEY,
+    consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
+    access_token_key: process.env.TWITTER_ACCESS_TOKEN,
+    access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
+  });
+
   try {
-    const { status } = req.body;
-    if (!status) return res.status(400).send({ error: "status が必要です。" });
-
-    const client = new Twitter({
-      consumer_key: process.env.TWITTER_CONSUMER_KEY,
-      consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
-      access_token_key: process.env.TWITTER_ACCESS_TOKEN,
-      access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
-    });
-
-    const response = await client.post("statuses/update", { status });
+    const response = await client.post("statuses/update", { status: message });
     res.send({ success: true, tweet: response });
   } catch (err) {
     console.error(err);
-    res.status(500).send({ error: "ツイートに失敗しました", details: err });
+    res.status(500).send({ error: "投稿に失敗しました", detail: err });
   }
 });
 
-// -----------------
-// サーバ起動
-// -----------------
+// サーバー起動
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
