@@ -6,7 +6,7 @@ document.querySelector("form").addEventListener("submit", async function(event) 
   const participants = document.getElementById("participants").value;
   const winner = document.getElementById("winner").value;
   const deck = document.getElementById("deck").value;
-  const imageInput = document.getElementById("image"); // <input type="file" id="image">
+  const imageInput = document.getElementById("image"); // 画像入力
 
   const message = `
 本日の #${title} #${tournament} は
