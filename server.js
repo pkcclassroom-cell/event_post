@@ -1,50 +1,65 @@
 import express from "express";
-import TwitterLite from "twitter-lite";
-import multer from "multer";
 import path from "path";
+import { fileURLToPath } from "url";
 import fs from "fs";
+import bodyParser from "body-parser";
+import Twitter from "twitter-lite";
 
 const app = express();
-const upload = multer({ dest: "uploads/" });
-app.use(express.json());
-app.use(express.static(path.join(process.cwd())));
-
 const PORT = process.env.PORT || 10000;
 
-// --- Twitter APIクライアント ---
-// ここに自分のトークンを入れてください
-const client = new TwitterLite({
-  consumer_key: "huJecw8eGMmHYlKmza2adYwQt",
-  consumer_secret: "D1Rn9e4b8Z2lQg4R4qpaLHX6H8SJ5nL9AAHj5w81gIuo3jW2Pb",
-  access_token_key: "1638795375023902720-tJ4mhTTPWkMrHoXMRM57LU6iUTDxum",
-  access_token_secret: "9KMyGrpBmYeYC3x8oaA95n8h1V6L47Mi7JPUH0vT4ouQK",
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(__dirname)); // index.html, style.css, script.jsなど
+app.use(bodyParser.json());
+
+const TEMPLATE_FILE = path.join(__dirname, "templates.json");
+
+// -----------------
+// 定型文取得・保存
+// -----------------
+app.get("/templates", (req, res) => {
+  fs.readFile(TEMPLATE_FILE, "utf8", (err, data) => {
+    if (err) return res.status(500).send({ error: "テンプレートを読み込めません。" });
+    res.send(JSON.parse(data));
+  });
 });
 
-// --- 投稿エンドポイント ---
-app.post("/post", upload.single("image"), async (req, res) => {
+app.post("/save-template", (req, res) => {
+  const newTemplates = req.body;
+  fs.writeFile(TEMPLATE_FILE, JSON.stringify(newTemplates, null, 2), (err) => {
+    if (err) return res.status(500).send({ error: "テンプレートを保存できません。" });
+    res.send({ message: "テンプレートを保存しました！" });
+  });
+});
+
+// -----------------
+// X (Twitter) 投稿用
+// -----------------
+app.post("/post-tweet", async (req, res) => {
   try {
-    const { message } = req.body;
-    if (!message) return res.status(400).send({ error: "message が必要です" });
+    const { status } = req.body;
+    if (!status) return res.status(400).send({ error: "status が必要です。" });
 
-    let mediaId = null;
+    const client = new Twitter({
+      consumer_key: process.env.TWITTER_CONSUMER_KEY,
+      consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
+      access_token_key: process.env.TWITTER_ACCESS_TOKEN,
+      access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
+    });
 
-    // 画像がある場合はアップロード
-    if (req.file) {
-      const b64content = fs.readFileSync(req.file.path, { encoding: "base64" });
-      const mediaResponse = await client.post("media/upload", { media_data: b64content });
-      mediaId = mediaResponse.media_id_string;
-      fs.unlinkSync(req.file.path); // アップロード後に削除
-    }
-
-    const params = { status: message };
-    if (mediaId) params.media_ids = mediaId;
-
-    const tweet = await client.post("statuses/update", params);
-    res.send({ success: true, tweet });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send({ error: error });
+    const response = await client.post("statuses/update", { status });
+    res.send({ success: true, tweet: response });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ error: "ツイートに失敗しました", details: err });
   }
 });
 
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+// -----------------
+// サーバ起動
+// -----------------
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
