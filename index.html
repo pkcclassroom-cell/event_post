@@ -3,155 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <title>大会投稿フォーム</title>
-
-<style>
-  body { font-family: sans-serif; }
-  .tabs { display: flex; margin-bottom: 10px; }
-  .tab-button {
-    flex: 1;
-    padding: 10px;
-    cursor: pointer;
-    border: 1px solid #ccc;
-    background: #f5f5f5;
-  }
-  .tab-button.active { background: #4caf50; color: #fff; font-weight: bold; }
-  .form-section { margin: 15px 0; }
-  .winner-block { margin: 8px 0; padding: 8px; border: 1px solid #ccc; border-radius: 6px; background: #fafafa; }
-  label { display: inline-block; width: 80px; }
-  input, select { margin: 5px 0; }
-  .container { display: flex; gap: 20px; }
-  #preview { width: 100%; height: 300px; }
-  .error { color: red; font-weight: bold; }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <h1>大会投稿フォーム</h1>
 
-<div class="tabs">
-  <button class="tab-button active" data-title="pokemon">ポケモン</button>
-  <button class="tab-button" data-title="yugioh">遊戯王</button>
-  <button class="tab-button" data-title="onepiece">ワンピース</button>
-</div>
-
-<div class="container">
-  <!-- 左：フォーム -->
-  <div style="flex:1;">
-    <div class="form-section">
-      <label for="eventName">大会名:</label>
-      <select id="eventName"></select>
-    </div>
-
-    <div class="form-section">
-      <label for="participants">参加人数:</label>
-      <input type="number" id="participants" min="1" placeholder="例: 54">
-    </div>
-
-    <div class="form-section">
-      <h3>入賞者情報</h3>
-      <div class="winner-block">
-        <label>入賞者1:</label>
-        <input type="text" id="winner1" placeholder="名前">
-        <input type="text" id="deck1" placeholder="デッキ名">
-      </div>
-      <div class="winner-block">
-        <label>入賞者2:</label>
-        <input type="text" id="winner2" placeholder="名前">
-        <input type="text" id="deck2" placeholder="デッキ名">
-      </div>
-      <div class="winner-block">
-        <label>入賞者3:</label>
-        <input type="text" id="winner3" placeholder="名前">
-        <input type="text" id="deck3" placeholder="デッキ名">
-      </div>
-      <div class="winner-block">
-        <label>入賞者4:</label>
-        <input type="text" id="winner4" placeholder="名前">
-        <input type="text" id="deck4" placeholder="デッキ名">
-      </div>
-    </div>
+<form enctype="multipart/form-data">
+  <div>
+    <label>タイトル:</label>
+    <input type="text" id="title" placeholder="例: ポケモン">
   </div>
-
-  <!-- 右：プレビュー -->
-  <div style="flex:1;">
-    <h3>文章プレビュー</h3>
-    <div id="preview" style="white-space: pre-wrap;"></div>
+  <div>
+    <label>大会名:</label>
+    <input type="text" id="tournament" placeholder="例: ジムバトル">
   </div>
-</div>
+  <div>
+    <label>参加人数:</label>
+    <input type="number" id="participants" min="1" placeholder="例: 54">
+  </div>
+  <div>
+    <label>優勝者:</label>
+    <input type="text" id="winner" placeholder="名前">
+  </div>
+  <div>
+    <label>デッキ名:</label>
+    <input type="text" id="deck" placeholder="デッキ名">
+  </div>
+  <div>
+    <label>画像:</label>
+    <input type="file" id="image" accept="image/*">
+  </div>
+  <button type="submit">Xに投稿</button>
+</form>
 
-<script>
-  const eventsByTitle = {
-    pokemon: ["ジムバトル", "トレーナーズリーグ", "エクストラバトル"],
-    yugioh: ["1デュエル戦", "マッチ戦"],
-    onepiece: ["交流会", "公式大会"]
-  };
-
-  const eventSelect = document.getElementById("eventName");
-  const tabButtons = document.querySelectorAll(".tab-button");
-  const participantsInput = document.getElementById("participants");
-  const winners = [
-    {name: document.getElementById("winner1"), deck: document.getElementById("deck1")},
-    {name: document.getElementById("winner2"), deck: document.getElementById("deck2")},
-    {name: document.getElementById("winner3"), deck: document.getElementById("deck3")},
-    {name: document.getElementById("winner4"), deck: document.getElementById("deck4")},
-  ];
-  const previewDiv = document.getElementById("preview");
-
-  function updateEventOptions(title) {
-    eventSelect.innerHTML = "";
-    eventsByTitle[title].forEach(event => {
-      const option = document.createElement("option");
-      option.textContent = event;
-      eventSelect.appendChild(option);
-    });
-  }
-
-  // 初期表示
-  updateEventOptions("pokemon");
-
-  tabButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      tabButtons.forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      const title = btn.getAttribute("data-title");
-      updateEventOptions(title);
-      updatePreview();
-    });
-  });
-
-  // プレビュー更新関数
-  function updatePreview() {
-    const titleTab = document.querySelector(".tab-button.active").textContent;
-    const eventName = eventSelect.value || "<span class='error'>未入力</span>";
-    const participants = participantsInput.value || "<span class='error'>未入力</span>";
-
-    let text = `本日の #${titleTab} #${eventName} は\n`;
-    text += `${participants} 名様にて開催\n\n`;
-
-    winners.forEach((w,i)=>{
-      const name = w.name.value || "<span class='error'>名前未入力</span>";
-      const deck = w.deck.value || "<span class='error'>デッキ名未入力</span>";
-      if(w.name.value || w.deck.value){
-        text += `優勝は 🏆 ${name} さん\n【#${deck}】\n\n`;
-      }
-    });
-
-    text += "おめでとうございます！\n";
-    text += "大会は毎日開催中！\n次回もぜひご参加ください！";
-
-    previewDiv.innerHTML = text;
-  }
-
-  // 入力イベント登録
-  participantsInput.addEventListener("input", updatePreview);
-  eventSelect.addEventListener("change", updatePreview);
-  winners.forEach(w=>{
-    w.name.addEventListener("input", updatePreview);
-    w.deck.addEventListener("input", updatePreview);
-  });
-
-  // 初期表示
-  updatePreview();
-</script>
+<script src="script.js"></script>
 </body>
 </html>
