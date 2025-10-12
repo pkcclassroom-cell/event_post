@@ -1,16 +1,24 @@
 {
   "name": "event_post",
   "version": "1.0.0",
-  "description": "大会投稿フォーム",
+  "description": "大会投稿フォームアプリ",
   "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pkcclassroom-cell/event_post.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "multer": "^1.4.5-lts.1",
-    "twitter-lite": "^1.1.0"
-  }
+  "cors": "^2.8.5",
+  "express": "^5.1.0",
+  "multer": "^1.4.5-lts.2",
+  "twitter-lite": "^0.14.0"
+}
+
 }
