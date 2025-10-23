@@ -1,55 +1,200 @@
-// プレビュー更新は既存の関数を使う
-function updatePreview() {
-  const titleTab = document.querySelector(".tab-button.active").textContent;
-  const eventName = eventSelect.value || "<未入力>";
-  const participants = participantsInput.value || "<未入力>";
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>大会投稿フォーム</title>
+<style>
+  body { font-family: sans-serif; padding: 20px; }
+  .tabs { display: flex; margin-bottom: 10px; }
+  .tab-button {
+    flex: 1;
+    padding: 10px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background: #f5f5f5;
+  }
+  .tab-button.active { background: #4caf50; color: #fff; font-weight: bold; }
+  .form-section { margin: 15px 0; }
+  .winner-block { margin: 8px 0; padding: 8px; border: 1px solid #ccc; border-radius: 6px; background: #fafafa; }
+  label { display: inline-block; width: 80px; }
+  input, select { margin: 5px 0; }
+  .container { display: flex; gap: 20px; }
+  #preview { width: 100%; height: 300px; white-space: pre-wrap; border: 1px solid #ccc; padding: 10px; background: #fafafa; }
+  #tweetButton {
+    background: #1da1f2; color: #fff; border: none;
+    padding: 10px 20px; border-radius: 6px; cursor: pointer;
+    font-size: 16px; margin-top: 10px;
+  }
+  #tweetButton:hover { background: #0d8ddb; }
+</style>
+</head>
+<body>
 
-  let text = `本日の #${titleTab} #${eventName} は\n`;
-  text += `${participants} 名様にて開催\n\n`;
+<h1>大会投稿フォーム</h1>
 
-  winners.forEach((w) => {
-    const name = w.name.value;
-    const deck = w.deck.value;
-    if (name || deck) {
-      text += `優勝は 🏆 ${name} さん\n【#${deck}】\n\n`;
-    }
-  });
+<div class="tabs">
+  <button class="tab-button active" data-title="ポケモン">ポケモン</button>
+  <button class="tab-button" data-title="遊戯王">遊戯王</button>
+  <button class="tab-button" data-title="ワンピース">ワンピース</button>
+</div>
 
-  text += "おめでとうございます！\n大会は毎日開催中！次回もぜひご参加ください！";
-  previewDiv.textContent = text;
+<div class="container">
+  <div style="flex:1;">
+    <div class="form-section">
+      <label for="eventName">大会名:</label>
+      <select id="eventName"></select>
+    </div>
+
+    <div class="form-section">
+      <label for="participants">参加人数:</label>
+      <input type="number" id="participants" min="1" placeholder="例: 54">
+    </div>
+
+    <div class="form-section">
+      <label for="formatSelect">形式:</label>
+      <select id="formatSelect">
+        <option value="winner">入賞者</option>
+        <option value="rank">順位</option>
+      </select>
+    </div>
+
+    <div class="form-section">
+      <h3>入賞者情報</h3>
+      <div class="winner-block">
+        <label>入賞者1:</label>
+        <input type="text" id="winner1" placeholder="名前">
+        <input type="text" id="deck1" placeholder="デッキ名">
+      </div>
+      <div class="winner-block">
+        <label>入賞者2:</label>
+        <input type="text" id="winner2" placeholder="名前">
+        <input type="text" id="deck2" placeholder="デッキ名">
+      </div>
+      <div class="winner-block">
+        <label>入賞者3:</label>
+        <input type="text" id="winner3" placeholder="名前">
+        <input type="text" id="deck3" placeholder="デッキ名">
+      </div>
+      <div class="winner-block">
+        <label>入賞者4:</label>
+        <input type="text" id="winner4" placeholder="名前">
+        <input type="text" id="deck4" placeholder="デッキ名">
+      </div>
+    </div>
+
+    <button id="tweetButton">X（旧Twitter）で投稿</button>
+  </div>
+
+  <div style="flex:1;">
+    <h3>文章プレビュー</h3>
+    <div id="preview"></div>
+  </div>
+</div>
+
+<script>
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbz05JZzeCm16fWkLyoTdK-W50n5aBViJPgYAy19O4ZZw-lKhZ6GkWWE0EQoQ7oKFwZw/exec";
+
+let templateData = {}; // {タイトル: {大会名: {開始文, 終了文}}}
+
+async function loadTemplateData() {
+  try {
+    const res = await fetch(SHEET_URL);
+    const json = await res.json();
+    json.forEach(row => {
+      const title = row["タイトル　"].trim();
+      const event = row["大会名"];
+      const start = row["開始文"];
+      const end = row["終了文"];
+      if (!templateData[title]) templateData[title] = {};
+      templateData[title][event] = { start, end };
+    });
+    updateEventOptions("ポケモン");
+    updatePreview();
+  } catch (err) {
+    console.error("データ読み込み失敗:", err);
+  }
 }
 
-// 送信ボタン作成（HTML に <button id="sendBtn">送信</button> を追加）
-const sendBtn = document.getElementById("sendBtn");
-sendBtn.addEventListener("click", async () => {
-  const tweetText = previewDiv.textContent;
+const tabButtons = document.querySelectorAll(".tab-button");
+const eventSelect = document.getElementById("eventName");
+const participantsInput = document.getElementById("participants");
+const formatSelect = document.getElementById("formatSelect");
+const previewDiv = document.getElementById("preview");
+const tweetButton = document.getElementById("tweetButton");
+const winners = [
+  {name: document.getElementById("winner1"), deck: document.getElementById("deck1")},
+  {name: document.getElementById("winner2"), deck: document.getElementById("deck2")},
+  {name: document.getElementById("winner3"), deck: document.getElementById("deck3")},
+  {name: document.getElementById("winner4"), deck: document.getElementById("deck4")},
+];
 
-  try {
-    const res = await fetch("/post-tweet", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: tweetText })
-    });
+function updateEventOptions(title){
+  eventSelect.innerHTML = "";
+  const events = Object.keys(templateData[title] || {});
+  events.forEach(ev=>{
+    const opt = document.createElement("option");
+    opt.textContent = ev;
+    eventSelect.appendChild(opt);
+  });
+}
 
-    const data = await res.json();
-    if (res.ok) {
-      alert("投稿成功！ID: " + data.id_str);
-    } else {
-      alert("投稿失敗: " + (data.error || JSON.stringify(data)));
-    }
-  } catch (err) {
-    console.error(err);
-    alert("エラーが発生しました。コンソールを確認してください。");
-  }
+tabButtons.forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    tabButtons.forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    updateEventOptions(btn.textContent);
+    updatePreview();
+  });
 });
 
-// 既存の入力イベントにプレビュー更新を追加
-participantsInput.addEventListener("input", updatePreview);
-eventSelect.addEventListener("change", updatePreview);
-winners.forEach(w => {
+function updatePreview(){
+  const title = document.querySelector(".tab-button.active").textContent;
+  const event = eventSelect.value || "<未選択>";
+  const participants = participantsInput.value || "<未入力>";
+  const format = formatSelect.value;
+
+  let startTemplate = templateData[title]?.[event]?.start || "";
+  startTemplate = startTemplate.replace("{participants}", participants);
+
+  let endTemplate = templateData[title]?.[event]?.end || "";
+
+  let middle = "";
+  const enteredWinners = winners.filter(w=> w.name.value);
+  if(format === "winner"){
+    if(enteredWinners.length>0) middle += "入賞者は～\n";
+    enteredWinners.forEach(w=>{
+      const name = w.name.value;
+      const deck = w.deck.value.trim();
+      middle += deck ? `${name} さん\n【#${deck}】\n\n` : `${name} さん\n\n`;
+    });
+  } else {
+    const rankEmojis = ["🏆","🥈","🥉","🎖"];
+    enteredWinners.forEach((w,i)=>{
+      const name = w.name.value;
+      const deck = w.deck.value.trim();
+      middle += deck ? `${rankEmojis[i]} ${name} さん\n【#${deck}】\n\n` : `${rankEmojis[i]} ${name} さん\n\n`;
+    });
+  }
+
+  previewDiv.textContent = `${startTemplate}\n\n${middle}${endTemplate}`;
+}
+
+// X投稿ボタン
+tweetButton.addEventListener("click", ()=>{
+  const text = previewDiv.textContent.trim();
+  if (!text) return alert("投稿内容が空です。");
+  const tweetUrl = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(text);
+  window.open(tweetUrl, "_blank");
+});
+
+[eventSelect, participantsInput, formatSelect].forEach(el=>el.addEventListener("input", updatePreview));
+winners.forEach(w=>{
   w.name.addEventListener("input", updatePreview);
   w.deck.addEventListener("input", updatePreview);
 });
 
-// 初期表示
-updatePreview();
+loadTemplateData();
+</script>
+
+</body>
+</html>
